@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Run New Scan</h5>
+                <form action="{{ url_for('main.search') }}" method="POST" class="row g-3" id="searchForm">
+                    <div class="col-auto">
+                        <input type="text" name="keyword" class="form-control" placeholder="Keyword (e.g. plumber)" value="business">
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="radius" class="form-control" placeholder="Radius (meters)" value="1000">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary" id="scanBtn">
+                            <span class="spinner-border spinner-border-sm d-none" id="scanSpinner" role="status" aria-hidden="true"></span>
+                            <span id="scanText">Scan Area</span>
+                        </button>
+                    </div>
+                </form>
+                
+                <form action="{{ url_for('main.reset_db') }}" method="POST" class="mt-3 border-top pt-3" onsubmit="return confirm('WARNING: This will wipe ALL data, including notes and hidden items. Are you sure?');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">⚠️ Reset Database (Wipe All)</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('searchForm').addEventListener('submit', function() {
+    const btn = document.getElementById('scanBtn');
+    const spinner = document.getElementById('scanSpinner');
+    const text = document.getElementById('scanText');
+    
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.textContent = ' Scanning...';
+});
+</script>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th style="width: 50px;">#</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>SSL</th>
+                <th>Mobile</th>
+                <th>Contact</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set ns = namespace(counter=1) %}
+            {% for status, leads in grouped_leads.items() %}
+                {% if leads %}
+                    <tr class="table-dark">
+                        <td colspan="7">
+                            <strong>{{ status.value }}</strong>
+                            <span class="badge bg-secondary ms-2">{{ leads|length }}</span>
+                        </td>
+                    </tr>
+                    {% for lead in leads %}
+                    <tr>
+                        <td>{{ ns.counter }}</td>
+                        {% set ns.counter = ns.counter + 1 %}
+                        <td>{{ lead.name }}<br><small class="text-muted">{{ lead.address }}</small></td>
+                        <td><span class="badge bg-{{ 'success' if lead.status.value == 'Won' else 'secondary' }}">{{ lead.status.value }}</span></td>
+                        <td>
+                            {% if lead.content_heuristic_score == 0 %}
+                                <span class="text-secondary" data-bs-toggle="tooltip" title="Not Analyzed Yet">○</span>
+                            {% elif lead.ssl_active %}
+                                <span class="text-success" data-bs-toggle="tooltip" title="SSL Active (Secure)">✔</span>
+                            {% else %}
+                                <span class="text-danger" data-bs-toggle="tooltip" title="No SSL / Insecure">✘</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if lead.mobile_viewport %}
+                                <span class="text-success" data-bs-toggle="tooltip" title="Mobile Optimized">✔</span>
+                            {% elif lead.content_heuristic_score == 0 %}
+                                <span class="text-secondary" data-bs-toggle="tooltip" title="Not Analyzed Yet">○</span>
+                            {% else %}
+                                <span class="text-warning" data-bs-toggle="tooltip" title="Not Mobile Optimized">?</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if lead.contact_info_found %}
+                                <span class="text-success" data-bs-toggle="tooltip" title="Email/Phone Found">Found</span>
+                            {% elif lead.content_heuristic_score == 0 %}
+                                <span class="text-secondary" data-bs-toggle="tooltip" title="Not Analyzed Yet">-</span>
+                            {% else %}
+                                <span class="text-muted" data-bs-toggle="tooltip" title="No Contact Info Found">Hidden</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('main.lead_detail', lead_id=lead.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <form action="{{ url_for('main.delete_lead', lead_id=lead.id) }}" method="POST" onsubmit="return confirm('Are you sure?');" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">X</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+            
+            {% if ns.counter == 1 %}
+            <tr>
+                <td colspan="7" class="text-center">No leads found yet. Run a scan!</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

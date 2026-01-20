@@ -1,0 +1,30 @@
+/* Dark mode tweaks */
+body {
+    /* Bootstrap handles the background via data-bs-theme="dark" */
+}
+
+.card {
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.table th {
+    font-weight: 600;
+    /* Color handled by Bootstrap dark mode */
+}
+
+/* Ensure links are visible */
+a {
+    text-decoration: none;
+}
+
+/* Status Colors - darker variants for better contrast in dark mode */
+.badge.bg-success { background-color: #198754 !important; }
+.badge.bg-secondary { background-color: #495057 !important; }
+.badge.bg-warning { background-color: #ffc107 !important; color: #000; }
+.badge.bg-danger { background-color: #dc3545 !important; }
+
+/* Analysis Indicators */
+.text-success { color: #75b798 !important; font-weight: bold; } /* lighter green */
+.text-danger { color: #ea868f !important; font-weight: bold; } /* lighter red */
+.text-warning { color: #ffda6a !important; font-weight: bold; } /* lighter yellow */

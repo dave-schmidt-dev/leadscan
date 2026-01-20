@@ -25,6 +25,8 @@ Create a `.env` file in the root directory:
 GOOGLE_PLACES_API_KEY=your_key_here
 SECRET_KEY=dev_secret
 DATABASE_URI=sqlite:///leadscan.db
+DEFAULT_LAT=37.7749   # Your search center latitude
+DEFAULT_LNG=-122.4194 # Your search center longitude
 ```
 
 ## 🛠 Features

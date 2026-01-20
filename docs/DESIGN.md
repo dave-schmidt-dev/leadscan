@@ -25,6 +25,7 @@ We chose a **Flask Monolith** pattern.
 Data flows through the system in this order:
 
 1.  **Ingestion (`google_places.py`)**
+    - **Location**: Default coordinates are pulled from `DEFAULT_LAT` and `DEFAULT_LNG` in the `.env` file.
     - **Omni-Search**: If keyword="business", iterates through 8+ high-value trade categories.
     - **Filtering**: Checks result against `CHAIN_BLOCKLIST` (Walmart, Starbucks) and `TYPE_BLOCKLIST` (Gas Stations).
     - **Deduplication**: Checks DB for existing `place_id`. If unique -> Create `Lead` (Status: Scraped).

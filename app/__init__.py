@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, request, redirect
+from flask_talisman import Talisman
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -10,6 +11,10 @@ Base = declarative_base()
 def create_app():
     app = Flask(__name__)
     
+    # Enforce HTTPS and security headers
+    # We disable content_security_policy for local dev to keep bootstrap/etc simple
+    Talisman(app, force_https=True, content_security_policy=None)
+
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-please-change')
     app.config['DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///leadscan.db')

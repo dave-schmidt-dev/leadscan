@@ -19,7 +19,7 @@ class TestOmniCategories:
             categories = get_omni_categories()
             assert "plumber" in categories
             assert "electrician" in categories
-            assert len(categories) == 26
+            assert len(categories) == 81  # Expanded comprehensive list
 
     def test_get_omni_categories_uses_env_override(self):
         """Should use environment variable when set."""

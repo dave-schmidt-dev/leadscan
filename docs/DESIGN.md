@@ -33,7 +33,7 @@ Data flows through the system in this order:
 
 1.  **Ingestion (`google_places.py`)**
     - **Location**: Default coordinates are pulled from `DEFAULT_LAT` and `DEFAULT_LNG` in the `.env` file.
-    - **Omni-Search**: If keyword="business", iterates through **26+ high-value trade categories** (configurable via `OMNI_SEARCH_CATEGORIES` env var).
+    - **Omni-Search**: If keyword="business", iterates through **100+ local service categories** covering ~95% of non-franchise small businesses (configurable via `OMNI_SEARCH_CATEGORIES` env var). Categories span home services, medical, professional, automotive, personal services, and specialty contractors. See `docs/CATEGORIES.md` for complete breakdown.
     - **Streaming Results**: Progress is yielded via generator to allow real-time UI logging.
     - **Filtering**: Checks result against `CHAIN_BLOCKLIST` and `TYPE_BLOCKLIST`.
     - **Deduplication**: Checks DB for existing `place_id` (indexed for performance).

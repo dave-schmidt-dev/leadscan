@@ -22,7 +22,7 @@
 
 ## 🛠 Features
 
-- **Expanded Omni-Search**: Search for "business" to trigger a multi-category scan across 26+ high-value trades (Plumbers, Lawyers, Solar, etc.). Categories are now configurable via `OMNI_SEARCH_CATEGORIES` environment variable.
+- **Comprehensive Omni-Search**: Search for "business" to trigger a multi-category scan across **100+ local service categories** covering ~95% of non-franchise small businesses (home services, medical, professional, automotive, personal services). Categories are fully configurable via `OMNI_SEARCH_CATEGORIES` environment variable. See [docs/CATEGORIES.md](docs/CATEGORIES.md) for the complete list.
 - **Live Progress Modal**: Real-time terminal-style logging during area scans.
 - **Bulk Web Analysis**:
     - **Tech Stack Detection**: Identifies WordPress, Wix, Squarespace, Shopify, and more.
@@ -35,7 +35,7 @@
 
 ## 🔐 Configuration
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (see `.env.example` for full documentation):
 ```ini
 GOOGLE_PLACES_API_KEY=your_key_here
 SECRET_KEY=dev_secret

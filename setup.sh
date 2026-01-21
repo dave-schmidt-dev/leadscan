@@ -25,18 +25,18 @@ if [ ! -d "venv" ]; then
 fi
 
 # Activate virtual environment
-echo "🔌 Activating virtual environment..."
-source venv/bin/activate
+# echo "🔌 Activating virtual environment..."
+# source venv/bin/activate
 
 # Upgrade pip
 echo "⬆️  Upgrading pip..."
-pip install --upgrade pip
+./venv/bin/python3 -m pip install --upgrade pip
 
 # Install dependencies
 echo "📥 Installing dependencies from requirements.txt..."
-pip install -r requirements.txt
+./venv/bin/pip install -r requirements.txt
 
 # Run the application
 echo "✅ Setup complete! Starting LeadScan..."
 echo "🌐 Open http://127.0.0.1:5000 in your browser"
-python3 run.py
+./venv/bin/python3 run.py

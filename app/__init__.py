@@ -1,8 +1,9 @@
+import os
+
 from flask import Flask
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-import os
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 # --- Database Shared State ---
 db_session = None
@@ -14,7 +15,7 @@ def create_app():
     Initializes database sessions, blueprints, and global context processors.
     """
     app = Flask(__name__)
-    
+
     # --- Configuration ---
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-please-change')
     app.config['DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///leadscan.db')
@@ -25,7 +26,7 @@ def create_app():
     db_session = scoped_session(sessionmaker(autocommit=False,
                                            autoflush=False,
                                            bind=engine))
-    
+
     # Allow Lead.query style access
     Base.query = db_session.query_property()
 
@@ -49,16 +50,16 @@ def create_app():
         except (ValueError, TypeError):
             nearby = 0
             details = 0
-            
+
         # Google Places API Free Tiers (adjust as needed)
         nearby_limit = 5000
         details_limit = 10000
-        
+
         nearby_pct = round((nearby / nearby_limit) * 100, 1)
         details_pct = round((details / details_limit) * 100, 1)
-        
+
         return dict(
-            api_nearby=nearby, 
+            api_nearby=nearby,
             api_details=details,
             api_nearby_pct=nearby_pct,
             api_details_pct=details_pct

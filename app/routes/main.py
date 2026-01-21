@@ -1,14 +1,24 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response, stream_with_context
-import os
 import json
-from app import db_session, Base
+import logging
+import os
+
+from flask import Blueprint, Response, abort, flash, redirect, render_template, request, stream_with_context, url_for
 from sqlalchemy import create_engine
-from app.models.lead import Lead, LeadStatus
+
+from app import Base, db_session
 from app.models.config import AppConfig
+from app.models.lead import Lead, LeadStatus
 from app.services.google_places import search_nearby
 from app.services.pipeline import process_lead_analysis
 
+logger = logging.getLogger(__name__)
+
 bp = Blueprint('main', __name__)
+
+# --- Input Validation Constants ---
+MIN_RADIUS = 100      # meters
+MAX_RADIUS = 50000    # meters (50km)
+DEFAULT_RADIUS = 1000
 
 # --- System Routes ---
 
@@ -17,7 +27,7 @@ def reset_db():
     """Wipes all leads from the database while preserving API usage statistics."""
     if request.method == 'GET':
         return redirect(url_for('main.index'))
-        
+
     # 1. Backup Stats
     backup_stats = {}
     try:
@@ -29,11 +39,11 @@ def reset_db():
 
     # 2. Wipe DB
     db_session.remove() # Close session to release file locks for SQLite
-    
+
     engine = create_engine(os.environ.get('DATABASE_URI', 'sqlite:///leadscan.db'))
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    
+
     # 3. Restore Stats
     if backup_stats.get('last_billing_month'):
         AppConfig.set('last_billing_month', backup_stats['last_billing_month'])
@@ -54,10 +64,10 @@ def favicon():
 def index():
     """Main dashboard showing leads grouped by status."""
     db_session.expire_all() # Ensure fresh data from database
-    
+
     # Show everything EXCEPT leads marked as Ignored/Hidden
     all_leads = Lead.query.filter(Lead.status != LeadStatus.IGNORED).order_by(Lead.id.desc()).all()
-    
+
     # Define desired display order
     status_order = [
         LeadStatus.ANALYZED,
@@ -67,20 +77,30 @@ def index():
         LeadStatus.LOST,
         LeadStatus.GOOD_CONDITION
     ]
-    
+
     grouped_leads = {status: [] for status in status_order}
     for lead in all_leads:
         if lead.status in grouped_leads:
             grouped_leads[lead.status].append(lead)
-            
+
     return render_template('index.html', grouped_leads=grouped_leads)
 
 @bp.route('/search', methods=['POST'])
 def search():
     """Performs an Omni-Search and streams real-time progress logs to the UI."""
-    keyword = request.form.get('keyword', 'business')
-    radius = int(request.form.get('radius', 1000))
-    
+    keyword = request.form.get('keyword', 'business').strip()
+
+    # Input validation: radius with bounds checking
+    try:
+        radius = int(request.form.get('radius', DEFAULT_RADIUS))
+        radius = max(MIN_RADIUS, min(radius, MAX_RADIUS))
+    except (ValueError, TypeError):
+        radius = DEFAULT_RADIUS
+
+    # Input validation: sanitize keyword
+    if not keyword or len(keyword) > 100:
+        keyword = 'business'
+
     try:
         lat = float(os.environ.get('DEFAULT_LAT', '37.7749'))
         lng = float(os.environ.get('DEFAULT_LNG', '-122.4194'))
@@ -90,7 +110,7 @@ def search():
     def generate():
         total_found = 0
         total_new = 0
-        
+
         # Stream results from the Google Places service generator
         for type, data in search_nearby(lat, lng, radius, keyword):
             if type == 'log':
@@ -108,7 +128,7 @@ def search():
                     )
                     db_session.add(new_lead)
                     total_new += 1
-                
+
         db_session.commit()
         yield json.dumps({'type': 'done', 'new_leads': total_new, 'total_scanned': total_found}) + "\n"
 
@@ -176,15 +196,15 @@ def bulk_analyze():
         limit = int(request.form.get('limit', 5))
     except ValueError:
         limit = 5
-        
+
     query = Lead.query.filter(Lead.status == LeadStatus.SCRAPED)
     leads = query.all() if analyze_all else query.limit(limit).all()
     msg_suffix = " (All Pending)" if analyze_all else f" (Limit: {limit})"
-        
+
     if not leads:
         flash('No "Scraped" leads found to analyze.')
         return redirect(url_for('main.index'))
-        
+
     count = 0
     errors = 0
     for lead in leads:
@@ -195,7 +215,7 @@ def bulk_analyze():
                 errors += 1
         except Exception:
             errors += 1
-            
+
     flash(f"Bulk Analysis Complete: Processed {count} leads{msg_suffix}. Errors: {errors}")
     return redirect(url_for('main.index'))
 

@@ -73,6 +73,28 @@ def search():
     
     try:
         results = search_nearby(lat, lng, radius, keyword)
+        
+        # Deduplicate and Save
+        count = 0
+        for place in results:
+            existing = Lead.query.filter_by(place_id=place['place_id']).first()
+            if not existing:
+                new_lead = Lead(
+                    place_id=place['place_id'],
+                    name=place['name'],
+                    address=place['address'],
+                    status=LeadStatus.SCRAPED
+                )
+                db_session.add(new_lead)
+                count += 1
+        
+        db_session.commit()
+        
+        if count > 0:
+            flash(f'Scan complete. Added {count} new leads.')
+        else:
+            flash('Scan complete. No new leads found (all duplicates).')
+            
     except Exception as e:
         db_session.rollback()
         flash(f'Error during scan: {str(e)}')

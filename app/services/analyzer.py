@@ -38,6 +38,21 @@ def analyze_url(url):
         # Headers to mimic browser (avoids some 403s)
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         response = requests.get(url, timeout=10, verify=False, headers=headers)
+        
+        # Fallback: If deep link is 404, try root domain
+        if response.status_code == 404:
+            parsed_initial = urlparse(url)
+            root_url = f"{parsed_initial.scheme}://{parsed_initial.netloc}/"
+            if root_url != url:
+                print(f"DEBUG: 404 detected on deep link, trying root: {root_url}")
+                try:
+                    root_response = requests.get(root_url, timeout=10, verify=False, headers=headers)
+                    if root_response.status_code == 200:
+                        response = root_response
+                        url = root_url
+                except:
+                    pass
+
         results['exists'] = True
         results['status_code'] = response.status_code
         results['final_url'] = response.url

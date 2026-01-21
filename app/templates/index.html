@@ -158,9 +158,14 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                         </td>
                         <td>
                             <div class="btn-group">
-                                <a href="{{ url_for('main.lead_detail', lead_id=lead.id) }}" class="btn btn-sm btn-outline-primary">View</a>
-                                <form action="{{ url_for('main.delete_lead', lead_id=lead.id) }}" method="POST" onsubmit="return confirm('Are you sure?');" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">X</button>
+                                <a href="{{ url_for('main.lead_detail', lead_id=lead.id) }}" class="btn btn-sm btn-outline-primary">Details</a>
+                                
+                                <form action="{{ url_for('main.analyze_lead_dashboard', lead_id=lead.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Analyze</button>
+                                </form>
+
+                                <form action="{{ url_for('main.hide_lead', lead_id=lead.id) }}" method="POST" onsubmit="return confirm('Hide this lead? It will not appear in future scans.');" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Hide</button>
                                 </form>
                             </div>
                         </td>

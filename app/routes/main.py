@@ -149,6 +149,15 @@ def analyze_lead(lead_id):
         flash('Analysis failed (Lead not found).')
     return redirect(url_for('main.lead_detail', lead_id=lead_id))
 
+@bp.route('/lead/<int:lead_id>/analyze-dashboard', methods=['POST'])
+def analyze_lead_dashboard(lead_id):
+    success = process_lead_analysis(lead_id)
+    if success:
+        flash(f'Analysis complete.')
+    else:
+        flash('Analysis failed.')
+    return redirect(url_for('main.index'))
+
 @bp.route('/bulk-analyze', methods=['POST'])
 def bulk_analyze():
     analyze_all = request.form.get('analyze_all') == 'on'
@@ -186,12 +195,12 @@ def bulk_analyze():
     flash(f"Bulk Analysis Complete: Processed {count} leads{msg_suffix}. Errors: {errors}")
     return redirect(url_for('main.index'))
 
-@bp.route('/lead/<int:lead_id>/delete', methods=['POST'])
-def delete_lead(lead_id):
+@bp.route('/lead/<int:lead_id>/hide', methods=['POST'])
+def hide_lead(lead_id):
     lead = db_session.get(Lead, lead_id)
     if not lead:
         abort(404)
     lead.status = LeadStatus.IGNORED
     db_session.commit()
-    flash(f'Lead {lead.name} ignored (will not reappear in scans)')
+    flash(f'Lead {lead.name} hidden (will not reappear in scans)')
     return redirect(url_for('main.index'))

@@ -42,6 +42,9 @@ def favicon():
 
 @bp.route('/')
 def index():
+    # Force refresh from DB
+    db_session.expire_all()
+    
     # Show everything EXCEPT Ignored
     all_leads = Lead.query.filter(Lead.status != LeadStatus.IGNORED).order_by(Lead.id.desc()).all()
     

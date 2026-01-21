@@ -130,8 +130,10 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                         <td><span class="badge bg-{{ 'success' if lead.status.value == 'Won' else 'secondary' }}">{{ lead.status.value }}</span></td>
                         <td><small>{{ lead.tech_stack or '-' }}</small></td>
                         <td>
-                            {% if lead.content_heuristic_score == 0 %}
-                                <span class="text-secondary" data-bs-toggle="tooltip" title="Not Analyzed Yet">○</span>
+                            {% if lead.status.value == 'Scraped' %}
+                                <span class="text-secondary" data-bs-toggle="tooltip" title="Pending Analysis">○</span>
+                            {% elif not lead.website_url %}
+                                <span class="text-muted small" data-bs-toggle="tooltip" title="No Website Found">N/A</span>
                             {% elif lead.ssl_active %}
                                 <span class="text-success" data-bs-toggle="tooltip" title="SSL Active (Secure)">✔</span>
                             {% else %}
@@ -139,19 +141,23 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                             {% endif %}
                         </td>
                         <td>
-                            {% if lead.mobile_viewport %}
+                            {% if lead.status.value == 'Scraped' %}
+                                <span class="text-secondary" data-bs-toggle="tooltip" title="Pending Analysis">○</span>
+                            {% elif not lead.website_url %}
+                                <span class="text-muted small" data-bs-toggle="tooltip" title="No Website Found">N/A</span>
+                            {% elif lead.mobile_viewport %}
                                 <span class="text-success" data-bs-toggle="tooltip" title="Mobile Optimized">✔</span>
-                            {% elif lead.content_heuristic_score == 0 %}
-                                <span class="text-secondary" data-bs-toggle="tooltip" title="Not Analyzed Yet">○</span>
                             {% else %}
                                 <span class="text-warning" data-bs-toggle="tooltip" title="Not Mobile Optimized">?</span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if lead.contact_info_found %}
+                            {% if lead.status.value == 'Scraped' %}
+                                <span class="text-secondary" data-bs-toggle="tooltip" title="Pending Analysis">-</span>
+                            {% elif not lead.website_url %}
+                                <span class="text-muted small" data-bs-toggle="tooltip" title="No Website Found">N/A</span>
+                            {% elif lead.contact_info_found %}
                                 <span class="text-success" data-bs-toggle="tooltip" title="Email/Phone Found">Found</span>
-                            {% elif lead.content_heuristic_score == 0 %}
-                                <span class="text-secondary" data-bs-toggle="tooltip" title="Not Analyzed Yet">-</span>
                             {% else %}
                                 <span class="text-muted" data-bs-toggle="tooltip" title="No Contact Info Found">Hidden</span>
                             {% endif %}
@@ -160,8 +166,11 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                             <div class="btn-group">
                                 <a href="{{ url_for('main.lead_detail', lead_id=lead.id) }}" class="btn btn-sm btn-outline-primary">Details</a>
                                 
-                                <form action="{{ url_for('main.analyze_lead_dashboard', lead_id=lead.id) }}" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-outline-warning">Analyze</button>
+                                <form action="{{ url_for('main.analyze_lead_dashboard', lead_id=lead.id) }}" method="POST" style="display:inline;" onsubmit="this.querySelector('button').disabled=true; this.querySelector('.spinner-border').classList.remove('d-none');">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">
+                                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                        Analyze
+                                    </button>
                                 </form>
 
                                 <form action="{{ url_for('main.hide_lead', lead_id=lead.id) }}" method="POST" onsubmit="return confirm('Hide this lead? It will not appear in future scans.');" style="display:inline;">

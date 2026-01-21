@@ -25,27 +25,27 @@ def process_lead_analysis(lead_id):
     # Refresh core contact data from Google Details API
     details = get_place_details(lead.place_id)
     if details:
-        lead.phone = details.get('formatted_phone_number', lead.phone)
-        lead.website_url = details.get('website', lead.website_url)
-        lead.address = details.get('formatted_address', lead.address)
+        lead.phone = details.get("formatted_phone_number", lead.phone)
+        lead.website_url = details.get("website", lead.website_url)
+        lead.address = details.get("formatted_address", lead.address)
 
     # --- Phase 2: Technical Analysis ---
     if lead.website_url:
         analysis = analyze_url(lead.website_url)
 
         # Map analysis metrics
-        lead.ssl_active = analysis.get('ssl_active', False)
-        lead.mobile_viewport = analysis.get('mobile_viewport', False)
-        lead.contact_info_found = analysis.get('contact_info_found', False)
-        lead.copyright_year = analysis.get('copyright_year')
-        lead.status_code = analysis.get('status_code')
-        lead.analysis_error = analysis.get('error')
-        lead.tech_stack = analysis.get('tech_stack')
-        lead.load_time = analysis.get('load_time')
+        lead.ssl_active = analysis.get("ssl_active", False)
+        lead.mobile_viewport = analysis.get("mobile_viewport", False)
+        lead.contact_info_found = analysis.get("contact_info_found", False)
+        lead.copyright_year = analysis.get("copyright_year")
+        lead.status_code = analysis.get("status_code")
+        lead.analysis_error = analysis.get("error")
+        lead.tech_stack = analysis.get("tech_stack")
+        lead.load_time = analysis.get("load_time")
 
         # Save technical logs
-        if analysis.get('logs'):
-            lead.analysis_notes = "\n".join(analysis['logs'])
+        if analysis.get("logs"):
+            lead.analysis_notes = "\n".join(analysis["logs"])
 
         # --- Phase 3: Scoring ---
         # Simple heuristic score (0-100)
@@ -56,7 +56,7 @@ def process_lead_analysis(lead_id):
             score += 25
         if lead.contact_info_found:
             score += 25
-        if analysis.get('exists'):
+        if analysis.get("exists"):
             score += 25
         lead.content_heuristic_score = score
 

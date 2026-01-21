@@ -12,7 +12,8 @@ class AppConfig(Base):
     """
     Persistent key-value store for application settings and API quota tracking.
     """
-    __tablename__ = 'app_config'
+
+    __tablename__ = "app_config"
     key = Column(String(50), primary_key=True)
     value = Column(String(255))
 
@@ -20,6 +21,7 @@ class AppConfig(Base):
     def get(key, default=None):
         """Retrieve a configuration value by key."""
         from app import db_session
+
         try:
             item = db_session.get(AppConfig, key)
             return item.value if item else default
@@ -31,6 +33,7 @@ class AppConfig(Base):
     def set(key, value):
         """Store or update a configuration value."""
         from app import db_session
+
         try:
             item = db_session.get(AppConfig, key)
             if not item:
@@ -47,15 +50,15 @@ class AppConfig(Base):
         """
         Automatically resets API usage counters if we have entered a new billing month.
         """
-        current_month = datetime.now().strftime('%Y-%m')
-        stored_month = AppConfig.get('last_billing_month')
+        current_month = datetime.now().strftime("%Y-%m")
+        stored_month = AppConfig.get("last_billing_month")
 
         if stored_month != current_month:
             # New month detected: Reset counters to 0
-            AppConfig.set('last_billing_month', current_month)
-            AppConfig.set('google_api_nearby', "0")
-            AppConfig.set('google_api_details', "0")
-            AppConfig.set('google_api_calls', "0")
+            AppConfig.set("last_billing_month", current_month)
+            AppConfig.set("google_api_nearby", "0")
+            AppConfig.set("google_api_details", "0")
+            AppConfig.set("google_api_calls", "0")
             logger.info(f"New billing month detected ({current_month}). Resetting API counters.")
 
     @staticmethod
@@ -80,7 +83,7 @@ class AppConfig(Base):
             # Atomic increment using SQL UPDATE
             db_session.execute(
                 text("UPDATE app_config SET value = CAST(COALESCE(value, '0') AS INTEGER) + :amt WHERE key = :key"),
-                {"amt": amount, "key": key}
+                {"amt": amount, "key": key},
             )
             db_session.commit()
 

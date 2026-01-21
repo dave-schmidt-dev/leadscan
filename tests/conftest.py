@@ -1,6 +1,7 @@
 """
 Pytest configuration and shared fixtures for LeadScan tests.
 """
+
 import os
 import sys
 
@@ -14,10 +15,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import Base
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def test_db():
     """Creates an in-memory SQLite database for testing."""
-    engine = create_engine('sqlite:///:memory:')
+    engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
 
     session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
@@ -32,12 +33,13 @@ def test_db():
 @pytest.fixture
 def app():
     """Create application for testing."""
-    os.environ['DATABASE_URI'] = 'sqlite:///:memory:'
-    os.environ['SECRET_KEY'] = 'test-secret-key'
+    os.environ["DATABASE_URI"] = "sqlite:///:memory:"
+    os.environ["SECRET_KEY"] = "test-secret-key"
 
     from app import create_app
+
     app = create_app()
-    app.config['TESTING'] = True
+    app.config["TESTING"] = True
 
     yield app
 

@@ -60,7 +60,7 @@
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         Page Load Speed
-                        <span>{{ lead.load_time + 'ms' if lead.load_time else 'Unknown' }}</span>
+                        <span>{% if lead.load_time %}{{ lead.load_time }}ms{% else %}Unknown{% endif %}</span>
                     </li>
                 </ul>
 

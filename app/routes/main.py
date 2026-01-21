@@ -36,6 +36,10 @@ def reset_db():
     flash('Database reset! (API Stats preserved)')
     return redirect(url_for('main.index'))
 
+@bp.route('/favicon.ico')
+def favicon():
+    return '', 204
+
 @bp.route('/')
 def index():
     # Show everything EXCEPT Ignored

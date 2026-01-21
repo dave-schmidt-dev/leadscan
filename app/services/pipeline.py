@@ -1,9 +1,9 @@
-from app import db_session
 from app.models.lead import Lead, LeadStatus
 from app.services.google_places import get_place_details
 from app.services.analyzer import analyze_url
 
 def process_lead_analysis(lead_id):
+    from app import db_session
     """
     Runs the full analysis pipeline on an existing lead.
     1. Fetches deep details from Google (website, phone)
@@ -42,8 +42,12 @@ def process_lead_analysis(lead_id):
         lead.content_heuristic_score = score
         
     # Update status to Analyzed if it was just Scraped
+    print(f"DEBUG: Processing Lead {lead.id} ({lead.name}). Current Status: {lead.status}")
     if lead.status == LeadStatus.SCRAPED:
         lead.status = LeadStatus.ANALYZED
+        print(f"DEBUG: Status changed to ANALYZED for Lead {lead.id}")
+    else:
+        print(f"DEBUG: Status NOT changed. Condition met? {lead.status == LeadStatus.SCRAPED}")
         
     db_session.commit()
     return True

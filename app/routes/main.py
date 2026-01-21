@@ -72,7 +72,9 @@ def search():
         lat, lng = 37.7749, -122.4194
     
     try:
+        print(f"DEBUG: Searching with keyword '{keyword}', radius {radius} at {lat}, {lng}")
         results = search_nearby(lat, lng, radius, keyword)
+        print(f"DEBUG: Found {len(results)} results from API")
         
         # Deduplicate and Save
         count = 0
@@ -87,7 +89,10 @@ def search():
                 )
                 db_session.add(new_lead)
                 count += 1
+            else:
+                print(f"DEBUG: Skipping duplicate lead: {place['name']}")
         
+        print(f"DEBUG: Committing {count} new leads")
         db_session.commit()
         
         if count > 0:
@@ -96,6 +101,7 @@ def search():
             flash('Scan complete. No new leads found (all duplicates).')
             
     except Exception as e:
+        print(f"DEBUG: Search error: {e}")
         db_session.rollback()
         flash(f'Error during scan: {str(e)}')
         

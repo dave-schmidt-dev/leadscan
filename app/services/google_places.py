@@ -7,11 +7,20 @@ def search_nearby(lat, lng, radius, keyword="business"):
     """
     Searches for places using Google Places Nearby Search API.
     radius in meters.
+    If keyword is "business", performs an "Omni-Search" across multiple categories.
     Returns a list of simplified place dictionaries.
     """
     api_key = os.environ.get('GOOGLE_PLACES_API_KEY')
     if not api_key:
         raise ValueError("GOOGLE_PLACES_API_KEY not found in environment variables")
+
+    # Omni-Search Logic
+    keywords_to_search = [keyword]
+    if keyword.lower() == "business":
+        keywords_to_search = [
+            "plumber", "electrician", "hvac", "dentist", "roofer", 
+            "landscaper", "lawyer", "accountant", "pest control", "locksmith"
+        ]
 
     url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     
@@ -33,65 +42,66 @@ def search_nearby(lat, lng, radius, keyword="business"):
         'supermarket', 'department_store', 'shopping_mall', 'gas_station', 'atm'
     ]
 
-    results = []
-    params = {
-        'location': f"{lat},{lng}",
-        'radius': radius,
-        'keyword': keyword,
-        'key': api_key
-    }
+    all_results = {} # Use dict for deduplication by place_id
 
-    try:
-        while True:
-            # Track API usage
-            try:
-                AppConfig.increment('google_api_nearby')
-            except Exception:
-                pass # Don't fail search if stats fail
-            
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            
-            # Check for API-level errors
-            if data.get('status') not in ['OK', 'ZERO_RESULTS']:
-                print(f"❌ Google API Error: {data.get('status')} - {data.get('error_message', 'No details')}")
-                break # Stop searching this keyword
-            
-            if 'results' in data:
-                for place in data['results']:
-                    name_lower = place.get('name', '').lower()
-                    place_types = place.get('types', [])
-                    
-                    # 1. Filter Chains
-                    if any(chain in name_lower for chain in CHAIN_BLOCKLIST):
-                        continue
-                        
-                    # 2. Filter Types
-                    if any(b_type in place_types for b_type in TYPE_BLOCKLIST):
-                        continue
+    for kw in keywords_to_search:
+        params = {
+            'location': f"{lat},{lng}",
+            'radius': radius,
+            'keyword': kw,
+            'key': api_key
+        }
 
-                    results.append({
-                        'place_id': place.get('place_id'),
-                        'name': place.get('name'),
-                        'address': place.get('vicinity'), # Nearby search uses 'vicinity'
-                        'rating': place.get('rating'),
-                        'types': place_types
-                    })
-            
-            # Handle pagination
-            if 'next_page_token' in data:
-                params = {'pagetoken': data['next_page_token'], 'key': api_key}
-                # Must wait a short time for token to become valid
-                time.sleep(2) 
-            else:
-                break
+        try:
+            while True:
+                # Track API usage
+                try:
+                    AppConfig.increment('google_api_nearby')
+                except Exception:
+                    pass
                 
-    except Exception as e:
-        print(f"Error fetching places: {e}")
-        return []
+                response = requests.get(url, params=params)
+                response.raise_for_status()
+                data = response.json()
+                
+                if data.get('status') not in ['OK', 'ZERO_RESULTS']:
+                    print(f"❌ Google API Error ({kw}): {data.get('status')} - {data.get('error_message', 'No details')}")
+                    break
+                
+                if 'results' in data:
+                    for place in data['results']:
+                        pid = place.get('place_id')
+                        if pid in all_results:
+                            continue
 
-    return results
+                        name_lower = place.get('name', '').lower()
+                        place_types = place.get('types', [])
+                        
+                        if any(chain in name_lower for chain in CHAIN_BLOCKLIST):
+                            continue
+                            
+                        if any(b_type in place_types for b_type in TYPE_BLOCKLIST):
+                            continue
+
+                        all_results[pid] = {
+                            'place_id': pid,
+                            'name': place.get('name'),
+                            'address': place.get('vicinity'),
+                            'rating': place.get('rating'),
+                            'types': place_types
+                        }
+                
+                if 'next_page_token' in data:
+                    params = {'pagetoken': data['next_page_token'], 'key': api_key}
+                    time.sleep(2) 
+                else:
+                    break
+                    
+        except Exception as e:
+            print(f"Error fetching places for '{kw}': {e}")
+            continue
+
+    return list(all_results.values())
 
 def get_place_details(place_id):
     """

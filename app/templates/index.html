@@ -2,8 +2,9 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card">
+    <!-- Scan Card -->
+    <div class="col-md-6">
+        <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title">Run New Scan</h5>
                 <form action="{{ url_for('main.search') }}" method="POST" class="row g-3" id="searchForm">
@@ -27,6 +28,35 @@
             </div>
         </div>
     </div>
+
+    <!-- Bulk Analyze Card -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Bulk Analyze</h5>
+                <p class="card-text text-muted small">Process 'Scraped' leads to find details.</p>
+                
+                <form action="{{ url_for('main.bulk_analyze') }}" method="POST" id="bulkForm">
+                    <div class="mb-3">
+                        <label for="limitRange" class="form-label">Analyze Next <span id="rangeVal" class="fw-bold">5</span> Leads</label>
+                        <input type="range" class="form-range" min="1" max="20" value="5" id="limitRange" name="limit" oninput="document.getElementById('rangeVal').textContent = this.value">
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="analyzeAll" name="analyze_all">
+                        <label class="form-check-label" for="analyzeAll">
+                            Analyze ALL Pending (May take time)
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100" id="bulkBtn">
+                        <span class="spinner-border spinner-border-sm d-none" id="bulkSpinner" role="status" aria-hidden="true"></span>
+                        <span id="bulkText">Start Bulk Analysis</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -38,6 +68,26 @@ document.getElementById('searchForm').addEventListener('submit', function() {
     btn.disabled = true;
     spinner.classList.remove('d-none');
     text.textContent = ' Scanning...';
+});
+
+document.getElementById('bulkForm').addEventListener('submit', function() {
+    const btn = document.getElementById('bulkBtn');
+    const spinner = document.getElementById('bulkSpinner');
+    const text = document.getElementById('bulkText');
+    
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.textContent = ' Processing...';
+});
+
+// Toggle range input when 'All' is checked
+document.getElementById('analyzeAll').addEventListener('change', function() {
+    document.getElementById('limitRange').disabled = this.checked;
+    if(this.checked) {
+        document.getElementById('rangeVal').textContent = "All";
+    } else {
+        document.getElementById('rangeVal').textContent = document.getElementById('limitRange').value;
+    }
 });
 </script>
 

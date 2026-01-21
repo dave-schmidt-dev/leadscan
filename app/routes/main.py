@@ -117,6 +117,43 @@ def analyze_lead(lead_id):
         flash('Analysis failed (Lead not found).')
     return redirect(url_for('main.lead_detail', lead_id=lead_id))
 
+@bp.route('/bulk-analyze', methods=['POST'])
+def bulk_analyze():
+    analyze_all = request.form.get('analyze_all') == 'on'
+    try:
+        limit = int(request.form.get('limit', 5))
+    except ValueError:
+        limit = 5
+        
+    query = Lead.query.filter(Lead.status == LeadStatus.SCRAPED)
+    
+    if not analyze_all:
+        leads = query.limit(limit).all()
+        msg_suffix = f" (Limit: {limit})"
+    else:
+        leads = query.all()
+        msg_suffix = " (All Pending)"
+        
+    if not leads:
+        flash('No "Scraped" leads found to analyze.')
+        return redirect(url_for('main.index'))
+        
+    count = 0
+    errors = 0
+    
+    for lead in leads:
+        try:
+            if process_lead_analysis(lead.id):
+                count += 1
+            else:
+                errors += 1
+        except Exception as e:
+            print(f"Error analyzing lead {lead.id}: {e}")
+            errors += 1
+            
+    flash(f"Bulk Analysis Complete: Processed {count} leads{msg_suffix}. Errors: {errors}")
+    return redirect(url_for('main.index'))
+
 @bp.route('/lead/<int:lead_id>/delete', methods=['POST'])
 def delete_lead(lead_id):
     lead = db_session.get(Lead, lead_id)

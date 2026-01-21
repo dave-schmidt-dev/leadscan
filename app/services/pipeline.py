@@ -42,18 +42,12 @@ def process_lead_analysis(lead_id):
         lead.content_heuristic_score = score
         
     # Update status to Analyzed if it was just Scraped
-    print(f"DEBUG: Processing Lead {lead.id} ({lead.name}). Current Status: {lead.status}")
-    
-    # Force update if it is Scraped, or if we want to allow re-analysis
     if lead.status == LeadStatus.SCRAPED:
         lead.status = LeadStatus.ANALYZED
-        print(f"DEBUG: Status changed to ANALYZED for Lead {lead.id}")
         
     try:
         db_session.commit()
-        print(f"DEBUG: Commit successful for Lead {lead.id}")
     except Exception as e:
-        print(f"DEBUG: Commit FAILED for Lead {lead.id}: {e}")
         db_session.rollback()
         return False
         

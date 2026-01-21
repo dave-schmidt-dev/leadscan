@@ -41,10 +41,10 @@ def index():
     # Show everything EXCEPT Ignored
     all_leads = Lead.query.filter(Lead.status != LeadStatus.IGNORED).order_by(Lead.id.desc()).all()
     
-    # Define desired order
+    # Define desired order (Analyzed first so progress is visible)
     status_order = [
-        LeadStatus.SCRAPED,
         LeadStatus.ANALYZED,
+        LeadStatus.SCRAPED,
         LeadStatus.CONTACTED,
         LeadStatus.WON,
         LeadStatus.LOST,

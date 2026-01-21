@@ -8,7 +8,7 @@ def search_nearby(lat, lng, radius, keyword="business"):
     Searches for places using Google Places Nearby Search API.
     radius in meters.
     If keyword is "business", performs an "Omni-Search" across multiple categories.
-    Returns a list of simplified place dictionaries.
+    Yields: ('log', message) OR ('result', place_dict)
     """
     api_key = os.environ.get('GOOGLE_PLACES_API_KEY')
     if not api_key:
@@ -46,9 +46,10 @@ def search_nearby(lat, lng, radius, keyword="business"):
         'supermarket', 'department_store', 'shopping_mall', 'gas_station', 'atm'
     ]
 
-    all_results = {} # Use dict for deduplication by place_id
+    processed_pids = set()
 
     for kw in keywords_to_search:
+        yield ('log', f"🔍 Scanning category: {kw.title()}...")
         params = {
             'location': f"{lat},{lng}",
             'radius': radius,
@@ -58,7 +59,6 @@ def search_nearby(lat, lng, radius, keyword="business"):
 
         try:
             while True:
-                # Track API usage
                 try:
                     AppConfig.increment('google_api_nearby')
                 except Exception:
@@ -69,13 +69,14 @@ def search_nearby(lat, lng, radius, keyword="business"):
                 data = response.json()
                 
                 if data.get('status') not in ['OK', 'ZERO_RESULTS']:
-                    print(f"❌ Google API Error ({kw}): {data.get('status')} - {data.get('error_message', 'No details')}")
+                    yield ('log', f"❌ Google API Error ({kw}): {data.get('status')}")
                     break
                 
+                found_in_batch = 0
                 if 'results' in data:
                     for place in data['results']:
                         pid = place.get('place_id')
-                        if pid in all_results:
+                        if pid in processed_pids:
                             continue
 
                         name_lower = place.get('name', '').lower()
@@ -87,14 +88,19 @@ def search_nearby(lat, lng, radius, keyword="business"):
                         if any(b_type in place_types for b_type in TYPE_BLOCKLIST):
                             continue
 
-                        all_results[pid] = {
+                        processed_pids.add(pid)
+                        found_in_batch += 1
+                        yield ('result', {
                             'place_id': pid,
                             'name': place.get('name'),
                             'address': place.get('vicinity'),
                             'rating': place.get('rating'),
                             'types': place_types
-                        }
+                        })
                 
+                if found_in_batch > 0:
+                    yield ('log', f"  ✨ Found {found_in_batch} unique leads")
+
                 if 'next_page_token' in data:
                     params = {'pagetoken': data['next_page_token'], 'key': api_key}
                     time.sleep(2) 
@@ -102,10 +108,10 @@ def search_nearby(lat, lng, radius, keyword="business"):
                     break
                     
         except Exception as e:
-            print(f"Error fetching places for '{kw}': {e}")
+            yield ('log', f"⚠️ Error fetching {kw}: {str(e)}")
             continue
 
-    return list(all_results.values())
+    yield ('log', "🏁 Scan complete.")
 
 def get_place_details(place_id):
     """

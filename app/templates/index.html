@@ -30,44 +30,83 @@
     </div>
 
     <!-- Bulk Analyze Card -->
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">Bulk Analyze</h5>
-                <p class="card-text text-muted small">Process 'Scraped' leads to find details.</p>
-                
-                <form action="{{ url_for('main.bulk_analyze') }}" method="POST" id="bulkForm">
-                    <div class="mb-3">
-                        <label for="limitRange" class="form-label">Analyze Next <span id="rangeVal" class="fw-bold">5</span> Leads</label>
-                        <input type="range" class="form-range" min="1" max="20" value="5" id="limitRange" name="limit" oninput="document.getElementById('rangeVal').textContent = this.value">
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="analyzeAll" name="analyze_all">
-                        <label class="form-check-label" for="analyzeAll">
-                            Analyze ALL Pending (May take time)
-                        </label>
-                    </div>
+    <!-- ... (rest of card) -->
+</div>
 
-                    <button type="submit" class="btn btn-success w-100" id="bulkBtn">
-                        <span class="spinner-border spinner-border-sm d-none" id="bulkSpinner" role="status" aria-hidden="true"></span>
-                        <span id="bulkText">Start Bulk Analysis</span>
-                    </button>
-                </form>
+<!-- Live Scan Log Modal -->
+<div class="modal fade" id="scanModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="scanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="scanModalLabel">🚀 Live Scan in Progress...</h5>
+            </div>
+            <div class="modal-body">
+                <div id="scanLog" class="p-3 bg-black text-success font-monospace small" style="height: 300px; overflow-y: auto; border: 1px solid #333;">
+                    Initializing Omni-Search engine...<br>
+                </div>
+                <div class="mt-3 text-center" id="scanStatus">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 mb-0">Please do not close this window.</p>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary d-none" id="scanFooter">
+                <button type="button" class="btn btn-primary" onclick="window.location.reload()">Refresh Dashboard</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-document.getElementById('searchForm').addEventListener('submit', function() {
-    const btn = document.getElementById('scanBtn');
-    const spinner = document.getElementById('scanSpinner');
-    const text = document.getElementById('scanText');
+document.getElementById('searchForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
     
-    btn.disabled = true;
-    spinner.classList.remove('d-none');
-    text.textContent = ' Scanning...';
+    const formData = new FormData(this);
+    const scanModal = new bootstrap.Modal(document.getElementById('scanModal'));
+    const logBox = document.getElementById('scanLog');
+    const footer = document.getElementById('scanFooter');
+    const status = document.getElementById('scanStatus');
+    
+    scanModal.show();
+    logBox.innerHTML = '📡 Starting Omni-Search...<br>';
+    
+    try {
+        const response = await fetch("{{ url_for('main.search') }}", {
+            method: 'POST',
+            body: formData
+        });
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const data = JSON.parse(line);
+                    if (data.type === 'log') {
+                        logBox.innerHTML += `${data.message}<br>`;
+                        logBox.scrollTop = logBox.scrollHeight;
+                    } else if (data.type === 'done') {
+                        logBox.innerHTML += `<br>✨ <strong>FINISHED:</strong> Found ${data.new_leads} new leads (${data.total_scanned} total business matches).<br>`;
+                        status.classList.add('d-none');
+                        footer.classList.remove('d-none');
+                    }
+                } catch (err) {
+                    console.error("Error parsing chunk", err);
+                }
+            }
+        }
+    } catch (err) {
+        logBox.innerHTML += `<br>❌ Error: ${err.message}<br>`;
+        status.classList.add('d-none');
+        footer.classList.remove('d-none');
+    }
 });
 
 document.getElementById('bulkForm').addEventListener('submit', function() {

@@ -72,53 +72,49 @@ def index():
             
     return render_template('index.html', grouped_leads=grouped_leads)
 
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response, stream_with_context
+import json
+
+# ... (rest of imports)
+
 @bp.route('/search', methods=['POST'])
 def search():
     keyword = request.form.get('keyword', 'business')
     radius = int(request.form.get('radius', 1000))
     
-    # Get coordinates from env or default to generic center (e.g. San Francisco)
     try:
         lat = float(os.environ.get('DEFAULT_LAT', '37.7749'))
         lng = float(os.environ.get('DEFAULT_LNG', '-122.4194'))
     except ValueError:
         lat, lng = 37.7749, -122.4194
-    
-    try:
-        print(f"DEBUG: Searching with keyword '{keyword}', radius {radius} at {lat}, {lng}")
-        results = search_nearby(lat, lng, radius, keyword)
-        print(f"DEBUG: Found {len(results)} results from API")
+
+    def generate():
+        total_found = 0
+        total_new = 0
         
-        # Deduplicate and Save
-        count = 0
-        for place in results:
-            existing = Lead.query.filter_by(place_id=place['place_id']).first()
-            if not existing:
-                new_lead = Lead(
-                    place_id=place['place_id'],
-                    name=place['name'],
-                    address=place['address'],
-                    status=LeadStatus.SCRAPED
-                )
-                db_session.add(new_lead)
-                count += 1
-            else:
-                print(f"DEBUG: Skipping duplicate lead: {place['name']}")
-        
-        print(f"DEBUG: Committing {count} new leads")
+        # Generator for streaming JSON chunks
+        for type, data in search_nearby(lat, lng, radius, keyword):
+            if type == 'log':
+                yield json.dumps({'type': 'log', 'message': data}) + "\n"
+            elif type == 'result':
+                total_found += 1
+                # Deduplicate and Save
+                existing = Lead.query.filter_by(place_id=data['place_id']).first()
+                if not existing:
+                    new_lead = Lead(
+                        place_id=data['place_id'],
+                        name=data['name'],
+                        address=data['address'],
+                        status=LeadStatus.SCRAPED
+                    )
+                    db_session.add(new_lead)
+                    total_new += 1
+                    # Commit in small batches or at end. End is safer for SQLite.
+                
         db_session.commit()
-        
-        if count > 0:
-            flash(f'Scan complete. Added {count} new leads.')
-        else:
-            flash('Scan complete. No new leads found (all duplicates).')
-            
-    except Exception as e:
-        print(f"DEBUG: Search error: {e}")
-        db_session.rollback()
-        flash(f'Error during scan: {str(e)}')
-        
-    return redirect(url_for('main.index'))
+        yield json.dumps({'type': 'done', 'new_leads': total_new, 'total_scanned': total_found}) + "\n"
+
+    return Response(stream_with_context(generate()), mimetype='application/x-ndjson')
 
 @bp.route('/lead/<int:lead_id>')
 def lead_detail(lead_id):

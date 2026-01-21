@@ -18,9 +18,20 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Check if venv is valid/exists
+if [ -d "venv" ]; then
+    # Check if the venv path matches the current directory
+    VENV_PATH=$(grep "VIRTUAL_ENV=" venv/bin/activate | head -1 | cut -d'=' -f2 | tr -d '"')
+    CURRENT_PATH=$(pwd)
+    if [[ "$VENV_PATH" != "$CURRENT_PATH"* ]]; then
+        echo "🔄 Old virtual environment detected (path mismatch). Recreating..."
+        rm -rf venv
+    fi
+fi
+
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
-    echo "📦 Creating virtual environment..."
+    echo "📦 Creating fresh virtual environment..."
     python3 -m venv venv
 fi
 

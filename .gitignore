@@ -67,7 +67,7 @@ cover/
 *.log
 local_settings.py
 db.sqlite3
-webscan.db
+leadscan.db
 db.sqlite3-journal
 
 # Flask stuff:

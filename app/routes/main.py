@@ -11,8 +11,11 @@ bp = Blueprint('main', __name__)
 
 from app.models.config import AppConfig
 
-@bp.route('/reset-db', methods=['POST'])
+@bp.route('/reset-db', methods=['GET', 'POST'])
 def reset_db():
+    if request.method == 'GET':
+        return redirect(url_for('main.index'))
+        
     # 1. Backup Stats
     backup_stats = {}
     try:
@@ -23,6 +26,9 @@ def reset_db():
         pass # If DB is broken, just proceed
 
     # 2. Wipe DB
+    # Close session to release file locks for SQLite
+    db_session.remove()
+    
     engine = create_engine(os.environ.get('DATABASE_URI', 'sqlite:///leadscan.db'))
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)

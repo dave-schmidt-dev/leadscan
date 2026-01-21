@@ -56,15 +56,20 @@
                     </li>
                 </ul>
 
-                {% if lead.status_code or lead.analysis_error %}
-                <div class="alert alert-{{ 'success' if lead.status_code == 200 else 'warning' }} mt-3">
+                {% if lead.status_code or lead.analysis_error or lead.analysis_notes %}
+                <div class="alert alert-{{ 'success' if lead.status_code == 200 else 'secondary' }} mt-3">
                     <h6 class="alert-heading">Technical Details</h6>
-                    <p class="mb-0 small">
+                    <div class="mb-0 small">
+                        {% if lead.analysis_notes %}
+                            <div class="mb-2 border-bottom pb-2 border-secondary border-opacity-25" style="white-space: pre-line;">
+                                {{ lead.analysis_notes }}
+                            </div>
+                        {% endif %}
                         <strong>Status Code:</strong> {{ lead.status_code or 'N/A' }}<br>
                         {% if lead.analysis_error %}
                             <strong>Last Error:</strong> <span class="text-danger">{{ lead.analysis_error }}</span>
                         {% endif %}
-                    </p>
+                    </div>
                 </div>
                 {% endif %}
             </div>

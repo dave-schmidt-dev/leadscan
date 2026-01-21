@@ -28,6 +28,7 @@ class Lead(Base):
     content_heuristic_score = Column(Integer, default=0) # Simple 0-100 score
     status_code = Column(Integer)
     analysis_error = Column(String(500))
+    analysis_notes = Column(Text)
     copyright_year = Column(Integer)
     
     status = Column(Enum(LeadStatus), default=LeadStatus.SCRAPED)

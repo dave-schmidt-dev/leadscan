@@ -34,6 +34,10 @@ def process_lead_analysis(lead_id):
         lead.status_code = analysis.get('status_code')
         lead.analysis_error = analysis.get('error')
         
+        # Save logs
+        if analysis.get('logs'):
+            lead.analysis_notes = "\n".join(analysis['logs'])
+        
         # Simple scoring
         score = 0
         if lead.ssl_active: score += 25

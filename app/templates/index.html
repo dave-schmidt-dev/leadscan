@@ -127,7 +127,16 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                             {% endif %}
                             <br><small class="text-muted">{{ lead.address }}</small>
                         </td>
-                        <td><span class="badge bg-{{ 'success' if lead.status.value == 'Won' else 'secondary' }}">{{ lead.status.value }}</span></td>
+                        <td>
+                            {% set status_color = 'secondary' %}
+                            {% if lead.status.value == 'Won' %}{% set status_color = 'success' %}
+                            {% elif lead.status.value == 'Analyzed' %}{% set status_color = 'primary' %}
+                            {% elif lead.status.value == 'Contacted' %}{% set status_color = 'warning' %}
+                            {% elif lead.status.value == 'Lost' %}{% set status_color = 'danger' %}
+                            {% elif lead.status.value == 'Good Condition' %}{% set status_color = 'info' %}
+                            {% endif %}
+                            <span class="badge bg-{{ status_color }}">{{ lead.status.value }}</span>
+                        </td>
                         <td><small>{{ lead.tech_stack or '-' }}</small></td>
                         <td>
                             {% if lead.status.value == 'Scraped' %}

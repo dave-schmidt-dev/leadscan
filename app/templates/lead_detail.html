@@ -15,7 +15,7 @@
                 
                 <hr>
                 <h5>Analysis</h5>
-                <ul class="list-group list-group-flush">
+                <ul class="list-group list-group-flush mb-3">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         SSL / HTTPS
                         {% if lead.content_heuristic_score == 0 %}
@@ -55,6 +55,18 @@
                         {% endif %}
                     </li>
                 </ul>
+
+                {% if lead.status_code or lead.analysis_error %}
+                <div class="alert alert-{{ 'success' if lead.status_code == 200 else 'warning' }} mt-3">
+                    <h6 class="alert-heading">Technical Details</h6>
+                    <p class="mb-0 small">
+                        <strong>Status Code:</strong> {{ lead.status_code or 'N/A' }}<br>
+                        {% if lead.analysis_error %}
+                            <strong>Last Error:</strong> <span class="text-danger">{{ lead.analysis_error }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -31,6 +31,8 @@ def process_lead_analysis(lead_id):
         lead.mobile_viewport = analysis.get('mobile_viewport', False)
         lead.contact_info_found = analysis.get('contact_info_found', False)
         lead.copyright_year = analysis.get('copyright_year')
+        lead.status_code = analysis.get('status_code')
+        lead.analysis_error = analysis.get('error')
         
         # Simple scoring
         score = 0

@@ -118,7 +118,14 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                     <tr>
                         <td>{{ ns.counter }}</td>
                         {% set ns.counter = ns.counter + 1 %}
-                        <td>{{ lead.name }}<br><small class="text-muted">{{ lead.address }}</small></td>
+                        <td>
+                            {% if lead.website_url %}
+                                <a href="{{ lead.website_url }}" target="_blank" class="text-decoration-none fw-bold">{{ lead.name }}</a>
+                            {% else %}
+                                <strong>{{ lead.name }}</strong>
+                            {% endif %}
+                            <br><small class="text-muted">{{ lead.address }}</small>
+                        </td>
                         <td><span class="badge bg-{{ 'success' if lead.status.value == 'Won' else 'secondary' }}">{{ lead.status.value }}</span></td>
                         <td>
                             {% if lead.content_heuristic_score == 0 %}

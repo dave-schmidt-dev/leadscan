@@ -26,6 +26,9 @@ class Lead(Base):
     mobile_viewport = Column(Boolean, default=False)
     contact_info_found = Column(Boolean, default=False)
     content_heuristic_score = Column(Integer, default=0) # Simple 0-100 score
+    status_code = Column(Integer)
+    analysis_error = Column(String(500))
+    copyright_year = Column(Integer)
     
     status = Column(Enum(LeadStatus), default=LeadStatus.SCRAPED)
     notes = Column(Text)

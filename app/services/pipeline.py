@@ -33,6 +33,8 @@ def process_lead_analysis(lead_id):
         lead.copyright_year = analysis.get('copyright_year')
         lead.status_code = analysis.get('status_code')
         lead.analysis_error = analysis.get('error')
+        lead.tech_stack = analysis.get('tech_stack')
+        lead.load_time = analysis.get('load_time')
         
         # Save logs
         if analysis.get('logs'):

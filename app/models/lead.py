@@ -30,6 +30,8 @@ class Lead(Base):
     analysis_error = Column(String(500))
     analysis_notes = Column(Text)
     copyright_year = Column(Integer)
+    tech_stack = Column(String(100))
+    load_time = Column(Integer) # In milliseconds
     
     status = Column(Enum(LeadStatus), default=LeadStatus.SCRAPED)
     notes = Column(Text)

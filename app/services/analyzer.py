@@ -30,95 +30,96 @@ def analyze_url(url):
         'mobile_viewport': False,
         'contact_info_found': False,
         'copyright_year': None,
+        'tech_stack': None,
+        'load_time': None,
         'error': None,
         'logs': []
     }
 
     try:
-        results['logs'].append(f"📡 Initiating connection to {url}")
-        # Check basic connectivity and follow redirects
-        # Headers to mimic browser (avoids some 403s)
+        results['logs'].append(f"📡 Connecting to {url}...")
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        
+        start_time = time.time()
         response = requests.get(url, timeout=10, verify=False, headers=headers)
+        duration = int((time.time() - start_time) * 1000)
+        results['load_time'] = duration
         
         # Fallback: If deep link is 404, try root domain
         if response.status_code == 404:
-            results['logs'].append("❌ Deep link returned 404")
+            results['logs'].append("❌ Deep link returned 404. Trying root...")
             parsed_initial = urlparse(url)
             root_url = f"{parsed_initial.scheme}://{parsed_initial.netloc}/"
             if root_url != url:
-                results['logs'].append(f"🔄 Falling back to root domain: {root_url}")
                 try:
                     root_response = requests.get(root_url, timeout=10, verify=False, headers=headers)
                     if root_response.status_code == 200:
-                        results['logs'].append("✅ Root domain connection successful")
+                        results['logs'].append("✅ Root domain found.")
                         response = root_response
                         url = root_url
                     else:
-                        results['logs'].append(f"❌ Root domain also failed with status {root_response.status_code}")
-                except Exception as e:
-                    results['logs'].append(f"⚠️ Root domain fallback failed: {str(e)}")
+                        results['logs'].append(f"❌ Root domain failed ({root_response.status_code}).")
+                except:
+                    pass
 
         results['exists'] = True
         results['status_code'] = response.status_code
         results['final_url'] = response.url
-        results['logs'].append(f"✅ Connection established (Status: {response.status_code})")
+        results['logs'].append(f"✅ Status: {response.status_code} | Speed: {duration}ms")
 
-        # Check SSL on final URL
+        # Check SSL
         parsed = urlparse(results['final_url'])
         if parsed.scheme == 'https':
-            results['logs'].append("🔐 Checking SSL certificate...")
             try:
-                # Explicitly verify SSL handshake
                 requests.get(results['final_url'], timeout=5, headers=headers)
                 results['ssl_active'] = True
-                results['logs'].append("🟢 SSL verified and valid")
-            except requests.exceptions.SSLError:
-                results['ssl_active'] = False
-                results['logs'].append("🔴 SSL certificate invalid or self-signed")
+                results['logs'].append("🟢 SSL: Valid Certificate")
+            except:
+                results['logs'].append("🔴 SSL: Invalid/Self-Signed")
         else:
-            results['logs'].append("🔓 Site is running on insecure HTTP")
+            results['logs'].append("🔓 SSL: Not Secure (HTTP)")
         
-        # --- Heuristics Analysis ---
         if response.status_code == 200:
-            results['logs'].append("📄 Parsing HTML for heuristics...")
             soup = BeautifulSoup(response.text, 'html.parser')
+            html_content = response.text.lower()
             
-            # 1. Mobile Viewport
+            # 1. Tech Stack Detection
+            results['logs'].append("🔍 Analyzing Tech Stack...")
+            stack = []
+            if 'wp-content' in html_content: stack.append("WordPress")
+            if 'wix.com' in html_content or '_wix_' in html_content: stack.append("Wix")
+            if 'squarespace' in html_content: stack.append("Squarespace")
+            if 'shopify' in html_content: stack.append("Shopify")
+            if 'go daddy' in html_content or 'godaddy' in html_content: stack.append("GoDaddy")
+            
+            results['tech_stack'] = ", ".join(stack) if stack else "Custom/Other"
+            results['logs'].append(f"🛠️ Tech: {results['tech_stack']}")
+
+            # 2. Mobile Viewport
             viewport = soup.find('meta', attrs={'name': 'viewport'})
             if viewport and 'width=device-width' in str(viewport.get('content', '')).lower():
                 results['mobile_viewport'] = True
-                results['logs'].append("📱 Mobile viewport tag found")
+                results['logs'].append("📱 Mobile: Optimized (Viewport found)")
             else:
-                results['logs'].append("📵 No mobile viewport tag detected")
+                results['logs'].append("📵 Mobile: Not Optimized")
             
-            # 2. Contact Info (Email/Phone)
+            # 3. Contact Info
             text_content = soup.get_text()
-            # Simple regex for email
             email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-            # Simple regex for phone (US formats)
             phone_pattern = r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
             
-            email_found = re.search(email_pattern, text_content)
-            phone_found = re.search(phone_pattern, text_content)
-            
-            if email_found or phone_found:
+            if re.search(email_pattern, text_content) or re.search(phone_pattern, text_content):
                 results['contact_info_found'] = True
-                contact_type = []
-                if email_found: contact_type.append("Email")
-                if phone_found: contact_type.append("Phone")
-                results['logs'].append(f"✉️ Contact info found: {', '.join(contact_type)}")
+                results['logs'].append("✉️ Contact: Found on homepage")
             else:
-                results['logs'].append("❓ No easy-to-find contact info detected in text")
+                results['logs'].append("❓ Contact: Not found in text")
                 
-            # 3. Copyright Year
-            # Look for "Copyright" or "©" followed by 4 digits
-            footer_text = text_content[-2000:] # Check last 2000 chars roughly
-            copyright_pattern = r'(?:Copyright|©).*?(\d{4})'
-            match = re.search(copyright_pattern, footer_text, re.IGNORECASE | re.DOTALL)
+            # 4. Copyright
+            footer_text = text_content[-2000:]
+            match = re.search(r'(?:Copyright|©).*?(\d{4})', footer_text, re.IGNORECASE | re.DOTALL)
             if match:
                 results['copyright_year'] = int(match.group(1))
-                results['logs'].append(f"📅 Copyright year detected: {results['copyright_year']}")
+                results['logs'].append(f"📅 Copyright: {results['copyright_year']}")
 
     except requests.exceptions.ConnectionError:
         err = 'Connection failed (DNS or Server down)'

@@ -98,6 +98,7 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                 <th style="width: 50px;">#</th>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Tech</th>
                 <th>SSL</th>
                 <th>Mobile</th>
                 <th>Contact</th>
@@ -109,7 +110,7 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
             {% for status, leads in grouped_leads.items() %}
                 {% if leads %}
                     <tr class="table-dark">
-                        <td colspan="7">
+                        <td colspan="8">
                             <strong>{{ status.value }}</strong>
                             <span class="badge bg-secondary ms-2">{{ leads|length }}</span>
                         </td>
@@ -127,6 +128,7 @@ document.getElementById('analyzeAll').addEventListener('change', function() {
                             <br><small class="text-muted">{{ lead.address }}</small>
                         </td>
                         <td><span class="badge bg-{{ 'success' if lead.status.value == 'Won' else 'secondary' }}">{{ lead.status.value }}</span></td>
+                        <td><small>{{ lead.tech_stack or '-' }}</small></td>
                         <td>
                             {% if lead.content_heuristic_score == 0 %}
                                 <span class="text-secondary" data-bs-toggle="tooltip" title="Not Analyzed Yet">○</span>

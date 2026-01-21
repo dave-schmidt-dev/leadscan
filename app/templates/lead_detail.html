@@ -54,20 +54,32 @@
                             <span>{{ lead.copyright_year or 'Unknown' }}</span>
                         {% endif %}
                     </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Tech Stack
+                        <span>{{ lead.tech_stack or 'Unknown' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Page Load Speed
+                        <span>{{ lead.load_time + 'ms' if lead.load_time else 'Unknown' }}</span>
+                    </li>
                 </ul>
 
                 {% if lead.status_code or lead.analysis_error or lead.analysis_notes %}
-                <div class="alert alert-{{ 'success' if lead.status_code == 200 else 'secondary' }} mt-3">
-                    <h6 class="alert-heading">Technical Details</h6>
-                    <div class="mb-0 small">
+                <div class="card mt-4 border-secondary bg-dark">
+                    <div class="card-header py-2">
+                        <h6 class="mb-0">📜 Detailed Analysis Log</h6>
+                    </div>
+                    <div class="card-body py-2">
                         {% if lead.analysis_notes %}
-                            <div class="mb-2 border-bottom pb-2 border-secondary border-opacity-25" style="white-space: pre-line;">
+                            <div class="small" style="white-space: pre-line; line-height: 1.6;">
                                 {{ lead.analysis_notes }}
                             </div>
                         {% endif %}
-                        <strong>Status Code:</strong> {{ lead.status_code or 'N/A' }}<br>
+                        
                         {% if lead.analysis_error %}
-                            <strong>Last Error:</strong> <span class="text-danger">{{ lead.analysis_error }}</span>
+                            <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 text-danger small">
+                                <strong>Final Error:</strong> {{ lead.analysis_error }}
+                            </div>
                         {% endif %}
                     </div>
                 </div>

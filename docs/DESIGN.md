@@ -26,25 +26,28 @@ Data flows through the system in this order:
 
 1.  **Ingestion (`google_places.py`)**
     - **Location**: Default coordinates are pulled from `DEFAULT_LAT` and `DEFAULT_LNG` in the `.env` file.
-    - **Omni-Search**: If keyword="business", iterates through 8+ high-value trade categories.
-    - **Filtering**: Checks result against `CHAIN_BLOCKLIST` (Walmart, Starbucks) and `TYPE_BLOCKLIST` (Gas Stations).
-    - **Deduplication**: Checks DB for existing `place_id`. If unique -> Create `Lead` (Status: Scraped).
+    - **Omni-Search**: If keyword="business", iterates through **26+ high-value trade categories**.
+    - **Streaming Results**: Progress is yielded via generator to allow real-time UI logging.
+    - **Filtering**: Checks result against `CHAIN_BLOCKLIST` and `TYPE_BLOCKLIST`.
+    - **Deduplication**: Checks DB for existing `place_id`.
 
 2.  **Enrichment (`pipeline.py` & `analyzer.py`)**
-    - Triggered manually via "Analyze" button.
+    - Triggered manually (Individual) or in Batch (Bulk).
     - **Deep Fetch**: Call Google Details API for Phone/Website.
-    - **Connectivity**: `requests.get()` to check if site is up.
-    - **Security**: Verify SSL certificate.
-    - **Content Analysis**:
-        - `Mobile`: Check for `<meta name="viewport" ...>`.
-        - `Contact`: Regex scan for emails/phone patterns.
-        - `Freshness`: Regex scan for copyright year in footer.
+    - **Connectivity**: `requests.get()` with a 10s timeout and root-domain fallback.
+    - **Performance**: Captures TTFB (Time to First Byte).
+    - **Security**: Explicit SSL certificate verification.
+    - **Heuristics**:
+        - `Tech Stack`: Signature scanning for WP, Wix, Shopify, etc.
+        - `Mobile`: Viewport tag detection.
+        - `Contact`: Multi-pattern regex for emails/phones.
+        - `Freshness`: Copyright year extraction.
     - **Status Update**: Automatically moves lead from `Scraped` -> `Analyzed`.
 
 3.  **Presentation (UI)**
-    - Leads grouped by Status.
-    - Badges (Red/Green) allow user to instantly spot "low hanging fruit".
-    - "Ignored" leads are hidden but retained in DB to prevent re-scanning.
+    - Leads grouped by Status (Analyzed at the top).
+    - Technical Analysis logs provide transparency into failed or successful checks.
+    - Responsive dark-mode dashboard with real-time modal progress.
 
 ## Database Schema (`Lead` Model)
 

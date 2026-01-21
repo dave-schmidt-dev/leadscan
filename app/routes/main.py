@@ -1,18 +1,20 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response, stream_with_context
+import os
+import json
 from app import db_session, Base
 from sqlalchemy import create_engine
-import os
-
 from app.models.lead import Lead, LeadStatus
+from app.models.config import AppConfig
 from app.services.google_places import search_nearby
 from app.services.pipeline import process_lead_analysis
 
 bp = Blueprint('main', __name__)
 
-from app.models.config import AppConfig
+# --- System Routes ---
 
 @bp.route('/reset-db', methods=['GET', 'POST'])
 def reset_db():
+    """Wipes all leads from the database while preserving API usage statistics."""
     if request.method == 'GET':
         return redirect(url_for('main.index'))
         
@@ -22,12 +24,11 @@ def reset_db():
         backup_stats['google_api_nearby'] = AppConfig.get('google_api_nearby', "0")
         backup_stats['google_api_details'] = AppConfig.get('google_api_details', "0")
         backup_stats['last_billing_month'] = AppConfig.get('last_billing_month', None)
-    except:
+    except Exception:
         pass # If DB is broken, just proceed
 
     # 2. Wipe DB
-    # Close session to release file locks for SQLite
-    db_session.remove()
+    db_session.remove() # Close session to release file locks for SQLite
     
     engine = create_engine(os.environ.get('DATABASE_URI', 'sqlite:///leadscan.db'))
     Base.metadata.drop_all(bind=engine)
@@ -44,17 +45,20 @@ def reset_db():
 
 @bp.route('/favicon.ico')
 def favicon():
+    """Prevents 404 errors in console logs for the missing favicon."""
     return '', 204
+
+# --- Dashboard & Search ---
 
 @bp.route('/')
 def index():
-    # Force refresh from DB
-    db_session.expire_all()
+    """Main dashboard showing leads grouped by status."""
+    db_session.expire_all() # Ensure fresh data from database
     
-    # Show everything EXCEPT Ignored
+    # Show everything EXCEPT leads marked as Ignored/Hidden
     all_leads = Lead.query.filter(Lead.status != LeadStatus.IGNORED).order_by(Lead.id.desc()).all()
     
-    # Define desired order (Analyzed first so progress is visible)
+    # Define desired display order
     status_order = [
         LeadStatus.ANALYZED,
         LeadStatus.SCRAPED,
@@ -65,20 +69,15 @@ def index():
     ]
     
     grouped_leads = {status: [] for status in status_order}
-    
     for lead in all_leads:
         if lead.status in grouped_leads:
             grouped_leads[lead.status].append(lead)
             
     return render_template('index.html', grouped_leads=grouped_leads)
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response, stream_with_context
-import json
-
-# ... (rest of imports)
-
 @bp.route('/search', methods=['POST'])
 def search():
+    """Performs an Omni-Search and streams real-time progress logs to the UI."""
     keyword = request.form.get('keyword', 'business')
     radius = int(request.form.get('radius', 1000))
     
@@ -92,7 +91,7 @@ def search():
         total_found = 0
         total_new = 0
         
-        # Generator for streaming JSON chunks
+        # Stream results from the Google Places service generator
         for type, data in search_nearby(lat, lng, radius, keyword):
             if type == 'log':
                 yield json.dumps({'type': 'log', 'message': data}) + "\n"
@@ -109,15 +108,17 @@ def search():
                     )
                     db_session.add(new_lead)
                     total_new += 1
-                    # Commit in small batches or at end. End is safer for SQLite.
                 
         db_session.commit()
         yield json.dumps({'type': 'done', 'new_leads': total_new, 'total_scanned': total_found}) + "\n"
 
     return Response(stream_with_context(generate()), mimetype='application/x-ndjson')
 
+# --- Lead Details & Actions ---
+
 @bp.route('/lead/<int:lead_id>')
 def lead_detail(lead_id):
+    """View detailed analysis metrics and logs for a single lead."""
     lead = db_session.get(Lead, lead_id)
     if not lead:
         abort(404)
@@ -125,6 +126,7 @@ def lead_detail(lead_id):
 
 @bp.route('/lead/<int:lead_id>/status', methods=['POST'])
 def update_status(lead_id):
+    """Update the current workflow status of a lead."""
     lead = db_session.get(Lead, lead_id)
     if not lead:
         abort(404)
@@ -137,6 +139,7 @@ def update_status(lead_id):
 
 @bp.route('/lead/<int:lead_id>/notes', methods=['POST'])
 def update_notes(lead_id):
+    """Save custom user notes for a specific lead."""
     lead = db_session.get(Lead, lead_id)
     if not lead:
         abort(404)
@@ -147,24 +150,27 @@ def update_notes(lead_id):
 
 @bp.route('/lead/<int:lead_id>/analyze', methods=['POST'])
 def analyze_lead(lead_id):
+    """Trigger deep analysis for a specific lead from its detail page."""
     success = process_lead_analysis(lead_id)
     if success:
         flash('Deep analysis complete.')
     else:
-        flash('Analysis failed (Lead not found).')
+        flash('Analysis failed.')
     return redirect(url_for('main.lead_detail', lead_id=lead_id))
 
 @bp.route('/lead/<int:lead_id>/analyze-dashboard', methods=['POST'])
 def analyze_lead_dashboard(lead_id):
+    """Trigger analysis for a lead directly from the dashboard."""
     success = process_lead_analysis(lead_id)
     if success:
-        flash(f'Analysis complete.')
+        flash('Analysis complete.')
     else:
         flash('Analysis failed.')
     return redirect(url_for('main.index'))
 
 @bp.route('/bulk-analyze', methods=['POST'])
 def bulk_analyze():
+    """Trigger analysis for multiple 'Scraped' leads in sequence."""
     analyze_all = request.form.get('analyze_all') == 'on'
     try:
         limit = int(request.form.get('limit', 5))
@@ -172,13 +178,8 @@ def bulk_analyze():
         limit = 5
         
     query = Lead.query.filter(Lead.status == LeadStatus.SCRAPED)
-    
-    if not analyze_all:
-        leads = query.limit(limit).all()
-        msg_suffix = f" (Limit: {limit})"
-    else:
-        leads = query.all()
-        msg_suffix = " (All Pending)"
+    leads = query.all() if analyze_all else query.limit(limit).all()
+    msg_suffix = " (All Pending)" if analyze_all else f" (Limit: {limit})"
         
     if not leads:
         flash('No "Scraped" leads found to analyze.')
@@ -186,15 +187,13 @@ def bulk_analyze():
         
     count = 0
     errors = 0
-    
     for lead in leads:
         try:
             if process_lead_analysis(lead.id):
                 count += 1
             else:
                 errors += 1
-        except Exception as e:
-            print(f"Error analyzing lead {lead.id}: {e}")
+        except Exception:
             errors += 1
             
     flash(f"Bulk Analysis Complete: Processed {count} leads{msg_suffix}. Errors: {errors}")
@@ -202,10 +201,11 @@ def bulk_analyze():
 
 @bp.route('/lead/<int:lead_id>/hide', methods=['POST'])
 def hide_lead(lead_id):
+    """Mark a lead as Ignored so it no longer appears in results."""
     lead = db_session.get(Lead, lead_id)
     if not lead:
         abort(404)
     lead.status = LeadStatus.IGNORED
     db_session.commit()
-    flash(f'Lead {lead.name} hidden (will not reappear in scans)')
+    flash(f'Lead {lead.name} hidden.')
     return redirect(url_for('main.index'))

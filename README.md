@@ -18,30 +18,35 @@
     ```
 4.  **Access**: Open [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
-## 🔑 Configuration
+## 🛠 Features
+
+- **Expanded Omni-Search**: Search for "business" to trigger a multi-category scan across 26 high-value trades (Plumbers, Lawyers, Solar, etc.).
+- **Live Progress Modal**: Real-time terminal-style logging during area scans.
+- **Bulk Web Analysis**:
+    - **Tech Stack Detection**: Identifies WordPress, Wix, Squarespace, Shopify, and more.
+    - **Performance Metrics**: Measures Time-to-First-Byte (TTFB).
+    - **Heuristics**: SSL validation, Mobile Viewport detection, and Contact Info regex.
+- **CRM Workflow**: Track status from `Scraped` to `Won`.
+- **Advanced Technical Logs**: Deep-dive analysis logs showing exact scan results and fallback attempts.
+
+## 🔐 Configuration
 
 Create a `.env` file in the root directory:
 ```ini
 GOOGLE_PLACES_API_KEY=your_key_here
 SECRET_KEY=dev_secret
 DATABASE_URI=sqlite:///leadscan.db
-DEFAULT_LAT=37.7749   # Your search center latitude
-DEFAULT_LNG=-122.4194 # Your search center longitude
+DEFAULT_LAT=38.8118   # Your search center latitude
+DEFAULT_LNG=-77.6372  # Your search center longitude
 ```
 
-## 🛠 Features
+## 🚀 Running Locally
 
-- **Omni-Search**: Typing "business" triggers a multi-category scan (Plumbers, Electricians, Dentists, etc.) to maximize lead discovery.
-- **Smart Filtering**: Automatically ignores major chains (Walmart, Starbucks, etc.) and gas stations.
-- **Web Analysis Engine**:
-    - Checks if website exists (DNS/404).
-    - Checks for SSL/HTTPS.
-    - **Heuristics**: Scans for "Mobile Viewport" tags and easy-to-find contact info.
-- **CRM Lite**:
-    - Tracks status: `Scraped` → `Analyzed` → `Contacted` → `Won` / `Lost` / `Good Condition`.
-    - **Ignored** status hides junk leads permanently.
-    - **Reset DB**: Danger zone feature to wipe leads while preserving API stats.
-- **API Quota Management**: Tracks monthly usage for "Nearby Search" vs "Place Details" limits.
+1. **Setup**: Run `./setup.sh` to initialize the virtual environment and database.
+2. **Start**: Run `./run.sh`.
+3. **Access**: Open **`https://127.0.0.1:5000`** (Self-signed certificate is expected).
+
+*Note: The app runs on HTTPS by default to support modern browsers like DuckDuckGo. You may need to click 'Advanced' -> 'Proceed' in your browser.*
 
 ## 📂 Project Structure
 

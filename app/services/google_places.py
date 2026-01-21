@@ -6,15 +6,14 @@ from app.models.config import AppConfig
 def search_nearby(lat, lng, radius, keyword="business"):
     """
     Searches for places using Google Places Nearby Search API.
-    radius in meters.
-    If keyword is "business", performs an "Omni-Search" across multiple categories.
-    Yields: ('log', message) OR ('result', place_dict)
+    If keyword is 'business', performs an Omni-Search across high-value categories.
+    Yields: ('log', message) OR ('result', place_dict) for real-time progress.
     """
     api_key = os.environ.get('GOOGLE_PLACES_API_KEY')
     if not api_key:
         raise ValueError("GOOGLE_PLACES_API_KEY not found in environment variables")
 
-    # Omni-Search Logic
+    # --- Search Configuration ---
     keywords_to_search = [keyword]
     if keyword.lower() == "business":
         keywords_to_search = [
@@ -26,9 +25,7 @@ def search_nearby(lat, lng, radius, keyword="business"):
             "moving company", "restoration service", "window cleaning", "solar installation"
         ]
 
-    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-    
-    # Common chains to exclude
+    # --- Blocklists (Chains & Junk) ---
     CHAIN_BLOCKLIST = [
         'walmart', 'target', 'mcdonald', 'starbucks', 'cvs', 'walgreens', 
         'subway', 'dunkin', 'domino', 'pizza hut', 'burger king', 'wendy',
@@ -41,13 +38,14 @@ def search_nearby(lat, lng, radius, keyword="business"):
         'ihop', 'applebee', 'denny', 'outback', 'red lobster', 'olive garden'
     ]
     
-    # Types to exclude (big box stores, etc)
     TYPE_BLOCKLIST = [
         'supermarket', 'department_store', 'shopping_mall', 'gas_station', 'atm'
     ]
 
-    processed_pids = set()
+    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+    processed_pids = set() # Track place_ids to prevent duplicates across categories
 
+    # --- Search Loop ---
     for kw in keywords_to_search:
         yield ('log', f"🔍 Scanning category: {kw.title()}...")
         params = {
@@ -59,6 +57,7 @@ def search_nearby(lat, lng, radius, keyword="business"):
 
         try:
             while True:
+                # Track API usage statistics
                 try:
                     AppConfig.increment('google_api_nearby')
                 except Exception:
@@ -82,9 +81,9 @@ def search_nearby(lat, lng, radius, keyword="business"):
                         name_lower = place.get('name', '').lower()
                         place_types = place.get('types', [])
                         
+                        # Apply filtering
                         if any(chain in name_lower for chain in CHAIN_BLOCKLIST):
                             continue
-                            
                         if any(b_type in place_types for b_type in TYPE_BLOCKLIST):
                             continue
 
@@ -101,9 +100,10 @@ def search_nearby(lat, lng, radius, keyword="business"):
                 if found_in_batch > 0:
                     yield ('log', f"  ✨ Found {found_in_batch} unique leads")
 
+                # Handle Google API pagination
                 if 'next_page_token' in data:
                     params = {'pagetoken': data['next_page_token'], 'key': api_key}
-                    time.sleep(2) 
+                    time.sleep(2) # Mandatory delay for token activation
                 else:
                     break
                     
@@ -115,7 +115,7 @@ def search_nearby(lat, lng, radius, keyword="business"):
 
 def get_place_details(place_id):
     """
-    Fetches full details (website, phone) for a specific place.
+    Fetches full contact details (website, phone) for a specific place.
     """
     api_key = os.environ.get('GOOGLE_PLACES_API_KEY')
     url = "https://maps.googleapis.com/maps/api/place/details/json"
@@ -127,7 +127,7 @@ def get_place_details(place_id):
     }
     
     try:
-        # Track API usage
+        # Track API usage statistics
         try:
             AppConfig.increment('google_api_details')
         except Exception:
@@ -137,6 +137,5 @@ def get_place_details(place_id):
         response.raise_for_status()
         data = response.json()
         return data.get('result', {})
-    except Exception as e:
-        print(f"Error fetching place details: {e}")
+    except Exception:
         return {}

@@ -9,16 +9,13 @@ import datetime
 
 def analyze_url(url):
     """
-    Analyzes a URL for connectivity, SSL, and basic heuristics.
-    Returns a dictionary of results.
+    Analyzes a URL for connectivity, security, and technical heuristics.
+    Returns a dictionary of results including status codes, tech stack, and load times.
     """
     if not url:
-        return {
-            'exists': False,
-            'error': 'No URL provided'
-        }
+        return {'exists': False, 'error': 'No URL provided'}
 
-    # Ensure schema
+    # Ensure URL has a schema
     if not url.startswith(('http://', 'https://')):
         url = 'http://' + url
 
@@ -38,6 +35,7 @@ def analyze_url(url):
     }
 
     try:
+        # --- Phase 1: Connectivity & Performance ---
         results['logs'].append(f"📡 Connecting to {url}...")
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         
@@ -46,7 +44,7 @@ def analyze_url(url):
         duration = int((time.time() - start_time) * 1000)
         results['load_time'] = duration
         
-        # Fallback: If deep link is 404, try root domain
+        # Fallback Logic: If deep link is 404, attempt to scan the root domain
         if response.status_code == 404:
             results['logs'].append("❌ Deep link returned 404. Trying root...")
             parsed_initial = urlparse(url)
@@ -60,7 +58,7 @@ def analyze_url(url):
                         url = root_url
                     else:
                         results['logs'].append(f"❌ Root domain failed ({root_response.status_code}).")
-                except:
+                except Exception:
                     pass
 
         results['exists'] = True
@@ -68,23 +66,24 @@ def analyze_url(url):
         results['final_url'] = response.url
         results['logs'].append(f"✅ Status: {response.status_code} | Speed: {duration}ms")
 
-        # Check SSL
+        # --- Phase 2: Security (SSL) ---
         parsed = urlparse(results['final_url'])
         if parsed.scheme == 'https':
             try:
                 requests.get(results['final_url'], timeout=5, headers=headers)
                 results['ssl_active'] = True
                 results['logs'].append("🟢 SSL: Valid Certificate")
-            except:
+            except Exception:
                 results['logs'].append("🔴 SSL: Invalid/Self-Signed")
         else:
             results['logs'].append("🔓 SSL: Not Secure (HTTP)")
         
+        # --- Phase 3: Content & Heuristics ---
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             html_content = response.text.lower()
             
-            # 1. Tech Stack Detection
+            # Tech Stack Detection
             results['logs'].append("🔍 Analyzing Tech Stack...")
             stack = []
             if 'wp-content' in html_content: stack.append("WordPress")
@@ -96,15 +95,15 @@ def analyze_url(url):
             results['tech_stack'] = ", ".join(stack) if stack else "Custom/Other"
             results['logs'].append(f"🛠️ Tech: {results['tech_stack']}")
 
-            # 2. Mobile Viewport
+            # Mobile Responsiveness
             viewport = soup.find('meta', attrs={'name': 'viewport'})
             if viewport and 'width=device-width' in str(viewport.get('content', '')).lower():
                 results['mobile_viewport'] = True
-                results['logs'].append("📱 Mobile: Optimized (Viewport found)")
+                results['logs'].append("📱 Mobile: Optimized")
             else:
                 results['logs'].append("📵 Mobile: Not Optimized")
             
-            # 3. Contact Info
+            # Contact Information
             text_content = soup.get_text()
             email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
             phone_pattern = r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
@@ -115,7 +114,7 @@ def analyze_url(url):
             else:
                 results['logs'].append("❓ Contact: Not found in text")
                 
-            # 4. Copyright
+            # Copyright / Freshness
             footer_text = text_content[-2000:]
             match = re.search(r'(?:Copyright|©).*?(\d{4})', footer_text, re.IGNORECASE | re.DOTALL)
             if match:
@@ -123,15 +122,14 @@ def analyze_url(url):
                 results['logs'].append(f"📅 Copyright: {results['copyright_year']}")
 
     except requests.exceptions.ConnectionError:
-        err = 'Connection failed (DNS or Server down)'
-        results['error'] = err
-        results['logs'].append(f"❌ {err}")
+        results['error'] = 'Connection failed (DNS or Server down)'
+        results['logs'].append(f"❌ {results['error']}")
     except requests.exceptions.Timeout:
-        err = 'Timeout'
-        results['error'] = err
-        results['logs'].append(f"❌ {err}")
+        results['error'] = 'Timeout'
+        results['logs'].append(f"❌ {results['error']}")
     except Exception as e:
         results['error'] = str(e)
         results['logs'].append(f"💥 Unexpected error: {str(e)}")
 
     return results
+

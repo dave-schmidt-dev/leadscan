@@ -19,7 +19,11 @@ def search_nearby(lat, lng, radius, keyword="business"):
     if keyword.lower() == "business":
         keywords_to_search = [
             "plumber", "electrician", "hvac", "dentist", "roofer", 
-            "landscaper", "lawyer", "accountant", "pest control", "locksmith"
+            "landscaper", "lawyer", "accountant", "pest control", "locksmith",
+            "painter", "general contractor", "cleaning service", "auto repair",
+            "veterinarian", "chiropractor", "physical therapy", "tree service",
+            "fencing", "pool service", "handyman", "carpet cleaning",
+            "moving company", "restoration service", "window cleaning", "solar installation"
         ]
 
     url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"

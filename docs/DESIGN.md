@@ -13,7 +13,7 @@ The goal of LeadScan is to translate **agentic development capabilities** into *
 ### Build Versioning
 - Every developer/agent modification task MUST be accompanied by a version increment in `app/templates/base.html`.
 - Format: `v1.x` where `x` is incremented.
-- **Current Version**: v1.40
+- **Current Version**: v1.41
 
 ### Code Quality Standards (v1.40+)
 - **Linting**: All code must pass `ruff check` before commit (enforced by pre-commit hook).

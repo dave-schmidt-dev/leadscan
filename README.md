@@ -2,7 +2,7 @@
 
 **LeadScan** is a specialized "Lead Finder" tool designed to automate the discovery of local businesses with poor or missing web presence. It is built to streamline the sales pipeline for freelance web development.
 
-**Current Version**: v1.40
+**Current Version**: v1.41
 
 ## 🚀 Quick Start
 
@@ -110,9 +110,12 @@ Git hooks are automatically set up to maintain code quality:
 
 These hooks prevent committing broken or poorly formatted code.
 
-## 🔧 Recent Improvements (v1.40)
+## 🔧 Recent Improvements
 
-### Critical Security Fixes
+### v1.41 — Omni-Search Expansion
+- ✅ **Categories**: Expanded Omni-Search to 81+ comprehensive business categories.
+
+### v1.40 — Critical Security Fixes
 - ✅ **SSL Verification**: Now properly validates SSL certificates (previously disabled with `verify=False`)
 - ✅ **SSL Detection**: Uses socket-based verification instead of superficial checks
 - ✅ **Race Condition Fix**: `AppConfig.increment()` now uses atomic SQL updates

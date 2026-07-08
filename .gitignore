@@ -164,4 +164,8 @@ cython_debug/
 .idea/
 
 # VS Code
-.vscode/
+.vscode/HISTORY.md
+TASKS.md
+history.md
+tasks.md
+HISTORY.md
